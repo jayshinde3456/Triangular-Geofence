@@ -1,0 +1,37 @@
+Triangle,Class,Phase,max,mean,min
+T1 (Default),INSIDE,Computation_Time_(s),0.004042,0.002854,0.002751
+T1 (Default),INSIDE,Decryption_Time_(s),0.00242,0.001502,0.001413
+T1 (Default),INSIDE,Denominator_Time_(s),2e-06,1e-06,0.0
+T1 (Default),INSIDE,Encryption_Time_(s),0.0335,0.028502,0.014449
+T1 (Default),ON_BOUNDARY,Computation_Time_(s),0.003968,0.002875,0.002766
+T1 (Default),ON_BOUNDARY,Decryption_Time_(s),0.001739,0.001496,0.00144
+T1 (Default),ON_BOUNDARY,Denominator_Time_(s),1e-06,1e-06,0.0
+T1 (Default),ON_BOUNDARY,Encryption_Time_(s),0.03401,0.028295,0.018002
+T1 (Default),OUTSIDE,Computation_Time_(s),0.003028,0.002832,0.002766
+T1 (Default),OUTSIDE,Decryption_Time_(s),0.001633,0.001477,0.001446
+T1 (Default),OUTSIDE,Denominator_Time_(s),1e-06,1e-06,0.0
+T1 (Default),OUTSIDE,Encryption_Time_(s),0.032944,0.029035,0.015251
+T2 (Scaled ×1.5),INSIDE,Computation_Time_(s),0.003144,0.002833,0.002761
+T2 (Scaled ×1.5),INSIDE,Decryption_Time_(s),0.001636,0.001485,0.001447
+T2 (Scaled ×1.5),INSIDE,Denominator_Time_(s),1e-06,0.0,0.0
+T2 (Scaled ×1.5),INSIDE,Encryption_Time_(s),0.03428,0.028644,0.013513
+T2 (Scaled ×1.5),ON_BOUNDARY,Computation_Time_(s),0.003062,0.002834,0.00276
+T2 (Scaled ×1.5),ON_BOUNDARY,Decryption_Time_(s),0.001691,0.001491,0.001446
+T2 (Scaled ×1.5),ON_BOUNDARY,Denominator_Time_(s),1e-06,0.0,0.0
+T2 (Scaled ×1.5),ON_BOUNDARY,Encryption_Time_(s),0.035298,0.02837,0.013896
+T2 (Scaled ×1.5),OUTSIDE,Computation_Time_(s),0.003312,0.002849,0.002765
+T2 (Scaled ×1.5),OUTSIDE,Decryption_Time_(s),0.001581,0.001481,0.001449
+T2 (Scaled ×1.5),OUTSIDE,Denominator_Time_(s),4e-06,1e-06,0.0
+T2 (Scaled ×1.5),OUTSIDE,Encryption_Time_(s),0.033566,0.029719,0.020817
+T3 (Scaled ×2.0),INSIDE,Computation_Time_(s),0.003069,0.002844,0.002759
+T3 (Scaled ×2.0),INSIDE,Decryption_Time_(s),0.001533,0.001477,0.001443
+T3 (Scaled ×2.0),INSIDE,Denominator_Time_(s),1e-06,1e-06,0.0
+T3 (Scaled ×2.0),INSIDE,Encryption_Time_(s),0.033559,0.028838,0.013944
+T3 (Scaled ×2.0),ON_BOUNDARY,Computation_Time_(s),0.002934,0.00281,0.002767
+T3 (Scaled ×2.0),ON_BOUNDARY,Decryption_Time_(s),0.001693,0.001473,0.001445
+T3 (Scaled ×2.0),ON_BOUNDARY,Denominator_Time_(s),1e-06,1e-06,0.0
+T3 (Scaled ×2.0),ON_BOUNDARY,Encryption_Time_(s),0.032729,0.028759,0.016766
+T3 (Scaled ×2.0),OUTSIDE,Computation_Time_(s),0.003258,0.002836,0.002765
+T3 (Scaled ×2.0),OUTSIDE,Decryption_Time_(s),0.001498,0.00146,0.001443
+T3 (Scaled ×2.0),OUTSIDE,Denominator_Time_(s),1e-06,0.0,0.0
+T3 (Scaled ×2.0),OUTSIDE,Encryption_Time_(s),0.033459,0.028737,0.014222

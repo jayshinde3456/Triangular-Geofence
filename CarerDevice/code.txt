@@ -1,0 +1,99 @@
+@app.route("/submit-geofence-result", methods=['POST'])
+def submit_geofence_result():
+    try:
+        data = request.get_json()
+        if not data or 'encrypted_data' not in data:
+            return jsonify({
+                "status": "error",
+                "message": "Missing 'encrypted_data' in request"
+            }), 400
+
+        # Load TenSEAL context and decrypt
+        context = load_context()
+        enc_vec = parse_encrypted_vector(data['encrypted_data'], context)
+        start_time = time.time()
+        decrypted_values = decrypt_encrypted_vector(enc_vec)
+        print(f"[DEBUG] Raw decrypted values: sin_lat={decrypted_values[0]}, combined_term={decrypted_values[1]}", flush=True)
+        if decrypted_values is None:
+            return jsonify({
+                "status": "error",
+                "message": "Decryption failed"
+            }), 500
+
+        sin_lat, combined_term = decrypted_values[0], decrypted_values[1]
+
+        # Log decryption time
+        with open("decryption_runtime_ckks.txt", "a") as f:
+            f.write(f"{(time.time() - start_time)}\n")
+
+        print(f"Decrypted sin(lat): {sin_lat}")
+        print(f"Decrypted combined term: {combined_term}")
+
+        # Scale down to original normalized range (approx)
+        #scale_factor = 2**40
+        #scaled_sin_lat = sin_lat / scale_factor
+        #scaled_combined_term = combined_term / scale_factor
+        
+        #print(f"[DEBUG] Rescaled sin_lat = {scaled_sin_lat}", flush=True)
+        #print(f"[DEBUG] Rescaled combined_term = {scaled_combined_term}", flush=True) 
+
+        test_lat = 19.1705
+        test_lon = 72.9540
+        result = evaluate_geofence_result(test_lat, test_lon)
+        print(f"\n[TEST] Forced check for ({test_lat}, {test_lon}) → Result: {result}\n", flush=True)
+
+        print("[CHECK] Normalized sin(lat) should be:", math.sin(math.radians(19.1705)), flush=True)
+        print("[CHECK] Combined term should be:", math.cos(math.radians(19.1705)) * (math.cos(math.radians(72.9540)) - math.sin(math.radians(72.9540))), flush=True)
+        
+        min_lat, max_lat = 19.162681, 19.180841
+        min_lon, max_lon = 72.941430, 72.973848
+
+        def normalize(value, min_val, max_val):
+            return (value - min_val) / (max_val - min_val)
+        
+        norm_sin_lat = normalize(sin_lat, min_lat, max_lat)
+        norm_combined = normalize(combined_term, min_lon, max_lon)
+        print("[DEBUG] Normalized sin_lat BEFORE noise =", norm_sin_lat, flush=True)
+        print("[DEBUG] Normalized combined_term BEFORE noise =", norm_combined, flush=True)
+
+
+        # Add noise (Laplace and Gaussian)
+        laplace_sin_lat = add_laplace_noise(norm_sin_lat, scale=0.01)
+        laplace_combined = add_laplace_noise(norm_combined, scale=0.01)
+
+        gaussian_sin_lat = add_gaussian_noise(norm_sin_lat, std_dev=0.01)
+        gaussian_combined = add_gaussian_noise(norm_combined, std_dev=0.01)
+
+        print(f"[DEBUG] Laplace: sin_lat={laplace_sin_lat:.6f}, combined={laplace_combined:.6f}", flush=True)
+        print(f"[DEBUG] Gaussian: sin_lat={gaussian_sin_lat:.6f}, combined={gaussian_combined:.6f}", flush=True)
+
+        # --- Debug Override ---
+        #print("[DEBUG] Forcing noise result to test inside triangle behavior")
+        noisy_sin_lat = 19.1705
+        noisy_combined_term = 72.9540
+        noisy_sin_lat_gaussian = 19.1705
+        noisy_combined_term_gaussian = 72.9540
+        # --- End Debug Override ---
+        #is_inside_laplace = evaluate_geofence_result(noisy_sin_lat, noisy_combined_term)
+        #is_inside_gaussian = evaluate_geofence_result(noisy_sin_lat_gaussian, noisy_combined_term_gaussian)
+
+        # Geofence evaluation (signal-based)
+        is_inside_laplace = evaluate_geofence_result(laplace_sin_lat, laplace_combined)
+        is_inside_gaussian = evaluate_geofence_result(gaussian_sin_lat, gaussian_combined)
+
+        print(f"Laplace result: {is_inside_laplace}", flush=True)
+        print(f"Gaussian result: {is_inside_gaussian}",flush=True)
+
+        return jsonify({
+            "status": "success",
+            "message": "Decrypted and evaluated user location",
+            "laplace_result": is_inside_laplace,
+            "gaussian_result": is_inside_gaussian
+        })
+
+    except Exception as e:
+        print("Error in submit-geofence-result:", e)
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
