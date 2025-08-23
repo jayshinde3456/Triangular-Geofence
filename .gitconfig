@@ -1,0 +1,6 @@
+
+[user]
+	name = jayshinde3456
+	email = jayshinde3456@gmail.com
+[alias]
+	update = git config --global --unset-all alias.update 2>/dev/null || true\ngit config --global --unset alias.update 2>/dev/null || true add -A && git commit -m 'update all' && git push

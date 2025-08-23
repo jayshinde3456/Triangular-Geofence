@@ -1,0 +1,10 @@
+Run,Triangle,Accuracy (%)
+1,T1 (Default),100.0
+1,T2 (Scaled ×1.5),100.0
+1,T3 (Scaled ×2.0),100.0
+2,T1 (Default),100.0
+2,T2 (Scaled ×1.5),100.0
+2,T3 (Scaled ×2.0),100.0
+3,T1 (Default),100.0
+3,T2 (Scaled ×1.5),100.0
+3,T3 (Scaled ×2.0),100.0

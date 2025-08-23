@@ -41,7 +41,7 @@ def load_context():
 
     return context
 
-# === Public key sharing endpoint ===
+# === Public key sharing endpoint for user device to get the public context ===
 @app.route("/get-public-key", methods=["GET"])
 def get_public_key():
     try:
@@ -129,6 +129,9 @@ def submit_geofence_result():
         d1, d2, d3 = float(data["d1"]), float(data["d2"]), float(data["d3"])
 
         result, weights, dec_time = evaluate_f_values(f1_enc, f2_enc, f3_enc, d1, d2, d3)
+        # Print Result at carer logs
+        print("[CARER] Final classification:", result, flush=True)
+        print("[CARER] Barycentric weights (w1, w2, w3):", weights, flush=True)
 
         return jsonify({
             "status": "success",

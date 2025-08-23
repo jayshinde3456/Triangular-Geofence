@@ -159,41 +159,83 @@ def evaluate_point(label, lat, lon, x, y, triangle, ref_lat_rad, context):
         "timing": (enc_time, comp_time, dec_time, denom_time, gt_time, total_ckks_time)
     }
 
-def run_accuracy_all(context, triangles, write_header=False):
+def run_accuracy_all(context, triangles, write_header=False, write_csv=True):
+    """
+    Runs accuracy for each triangle, prints class-wise & overall accuracy,
+    and (optionally) writes the detailed rows to CSV.
+    """
     print("\n[ACCURACY EXPERIMENT]")
 
-    mode = "w" if write_header else "a"  # 🔁 Write once, then append
-    with open(ACCURACY_FILE, mode, newline="") as f:
+    CLASSES = ("INSIDE", "ON_BOUNDARY", "OUTSIDE")
+
+    # Prepare CSV ONLY if requested
+    writer = None
+    f = None
+    if write_csv:
+        mode = "w" if write_header else "a"
+        f = open(ACCURACY_FILE, mode, newline="")
         writer = csv.writer(f)
         if write_header:
             writer.writerow(ACCURACY_HEADERS)
 
+    try:
         for label, triangle in triangles.items():
             print(f"[•] Running {label}...")
 
+            # per-triangle counters
+            per_class_total   = {c: 0 for c in CLASSES}
+            per_class_correct = {c: 0 for c in CLASSES}
+            correct_total = 0
+
             ref_lat_rad = math.radians(sum(v[0] for v in triangle) / 3)
             points = generate_points(triangle, ref_lat_rad)
-            correct = 0
 
             for p in points:
                 result = evaluate_point(*p, triangle, ref_lat_rad, context)
-                correct += result["gt_class"].strip().upper() == result["ckks_class"].strip().upper()
-                w1_gt, w2_gt, w3_gt = result["gt_weights"]
-                w1_ckks, w2_ckks, w3_ckks = result["ckks_weights"]
 
-                delta_w1 = abs(w1_ckks - w1_gt)
-                delta_w2 = abs(w2_ckks - w2_gt)
-                delta_w3 = abs(w3_ckks - w3_gt)
+                gt_cls   = result["gt_class"].strip().upper()
+                ckks_cls = result["ckks_class"].strip().upper()
 
-                writer.writerow([label, result["label"], result["lat"], result["lon"],
-                                 *["{:.10f}".format(w) for w in result["gt_weights"]],
-                                 *["{:.10f}".format(w) for w in result["ckks_weights"]],
-                                 f"{delta_w1:.10f}", f"{delta_w2:.10f}", f"{delta_w3:.10f}",
-                                 result["gt_class"], result["ckks_class"]])
+                is_match = (gt_cls == ckks_cls)
+                correct_total += is_match
 
-            accuracy = round((correct / len(points)) * 100, 2)
-            print(f"{label} → Accuracy: {accuracy}% ({correct}/{len(points)})")
+                if gt_cls in per_class_total:
+                    per_class_total[gt_cls] += 1
+                    if is_match:
+                        per_class_correct[gt_cls] += 1
 
+                # Only write CSV if requested
+                if writer:
+                    w1_gt, w2_gt, w3_gt = result["gt_weights"]
+                    w1_ckks, w2_ckks, w3_ckks = result["ckks_weights"]
+                    delta_w1 = abs(w1_ckks - w1_gt)
+                    delta_w2 = abs(w2_ckks - w2_gt)
+                    delta_w3 = abs(w3_ckks - w3_gt)
+
+                    writer.writerow([
+                        label, result["label"], result["lat"], result["lon"],
+                        f"{w1_gt:.10f}", f"{w2_gt:.10f}", f"{w3_gt:.10f}",
+                        f"{w1_ckks:.10f}", f"{w2_ckks:.10f}", f"{w3_ckks:.10f}",
+                        f"{delta_w1:.10f}", f"{delta_w2:.10f}", f"{delta_w3:.10f}",
+                        result["gt_class"], result["ckks_class"]
+                    ])
+
+            # pretty print per-class + overall for this triangle
+            def pct(corr, tot): return (100.0 * corr / tot) if tot else 0.0
+
+            overall_acc = pct(correct_total, len(points))
+            inside_acc  = pct(per_class_correct["INSIDE"],      per_class_total["INSIDE"])
+            onb_acc     = pct(per_class_correct["ON_BOUNDARY"], per_class_total["ON_BOUNDARY"])
+            outside_acc = pct(per_class_correct["OUTSIDE"],     per_class_total["OUTSIDE"])
+
+            print(f"{label} → Overall: {overall_acc:.2f}% ({correct_total}/{len(points)})")
+            print(f"   INSIDE:      {inside_acc:.2f}% ({per_class_correct['INSIDE']}/{per_class_total['INSIDE']})")
+            print(f"   ON_BOUNDARY: {onb_acc:.2f}% ({per_class_correct['ON_BOUNDARY']}/{per_class_total['ON_BOUNDARY']})")
+            print(f"   OUTSIDE:     {outside_acc:.2f}% ({per_class_correct['OUTSIDE']}/{per_class_total['OUTSIDE']})")
+
+    finally:
+        if f:
+            f.close()
 
 def generate_weight_diff_summary():
     df = pd.read_csv(ACCURACY_FILE)
@@ -349,7 +391,7 @@ def plot_runtime_graph():
                     xytext=(0, 3), textcoords="offset points", ha='center', va='bottom', fontsize=8)
 
     ax.set_ylabel('Average Time (s)')
-    ax.set_title('CKKS vs Ground Truth Runtime by Triangle and Class')
+    ax.set_title('PriTriGeo vs TriGeo Runtime by Triangle and Class')
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha='right')
     ax.legend()
@@ -519,18 +561,19 @@ def run_all():
     for i, (label, triangle) in enumerate(triangles.items()):
         print(f"\n[🚀] Running experiments for: {label}")
         send_triangle_to_server(triangle)
-        #run_accuracy_all(context, {label: triangle}, write_header=(i == 0))
+        #run_accuracy_all(context, {label: triangle}, write_header=(i == 0), write_csv=True)
+
 
     #generate_weight_diff_summary()
     #plot_weight_differences_grouped()
     #run_runtime_all(context, triangles)
     #generate_runtime_detailed_summary()
-    #plot_runtime_graph()
+    plot_runtime_graph()
     #compute_and_plot_security_overhead()
     point_counts = [50, 100, 200, 400, 500, 700, 1000]
     #run_scalability_experiment(context, triangles, point_counts)
-    generate_scalability_summary()
-    plot_scalability_summary()
+    #generate_scalability_summary()
+    #plot_scalability_summary()
 
 if __name__ == "__main__":
     run_all()
