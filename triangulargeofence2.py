@@ -550,6 +550,74 @@ def plot_scalability_summary(csv_path="results/scalability_results/detailed_summ
     plt.savefig(save_path, dpi=300)
     print(f"[✓] Scalability plot saved to: {save_path}")
 
+def summarize_runtime_with_sd(input_file, output_file):
+    """
+    Reads a raw CSV file with Ground Truth and CKKS runtimes,
+    groups by Triangle and Class,
+    and calculates mean, min, max, and standard deviation
+    for both Ground Truth and CKKS times.
+    Saves the summary as a new CSV.
+    """
+    # Load raw CSV
+    df = pd.read_csv(input_file)
+
+    # Group and calculate stats
+    summary = df.groupby(["Triangle", "Class"]).agg(
+        
+        CKKS_Mean=("Total CKKS Time (s)", "mean"),
+        CKKS_Min=("Total CKKS Time (s)", "min"),
+        CKKS_Max=("Total CKKS Time (s)", "max"),
+        CKKS_SD=("Total CKKS Time (s)", "std"),
+        GT_Mean=("Ground Truth Time (s)", "mean"),
+        GT_Min=("Ground Truth Time (s)", "min"),
+        GT_Max=("Ground Truth Time (s)", "max"),
+        GT_SD=("Ground Truth Time (s)", "std")
+    ).reset_index()
+
+     # Format for readability
+    summary["GT_Mean"] = summary["GT_Mean"].apply(lambda x: f"{x:.1e}")
+    summary["GT_Min"]  = summary["GT_Min"].apply(lambda x: f"{x:.1e}")
+    summary["GT_Max"]  = summary["GT_Max"].apply(lambda x: f"{x:.1e}")
+    summary["GT_SD"]   = summary["GT_SD"].apply(lambda x: f"{x:.1e}")
+
+    summary["CKKS_Mean"] = summary["CKKS_Mean"].round(6)
+    summary["CKKS_Min"]  = summary["CKKS_Min"].round(6)
+    summary["CKKS_Max"]  = summary["CKKS_Max"].round(6)
+    summary["CKKS_SD"]   = summary["CKKS_SD"].round(6)
+
+    # Save summary
+    summary.to_csv(output_file, index=False)
+    print(f"✅ Summary with SD saved as {output_file}")
+
+def summarize_scalability_with_sd(input_files, output_file):
+   
+    summaries = []
+
+    for triangle, file_path in input_files.items():
+        df = pd.read_csv(file_path)
+
+        # Group by total points
+        grouped = df.groupby("Total Points")["Total CKKS Time (s)"]
+
+        summary = grouped.agg(
+            Mean="mean",
+            Min="min",
+            Max="max",
+            SD="std"   # standard deviation
+        ).reset_index()
+
+        summary.insert(0, "Triangle", triangle)
+        summaries.append(summary)
+
+    # Combine all triangles
+    final_summary = pd.concat(summaries, ignore_index=True)
+
+    # Save to CSV
+    final_summary.to_csv(output_file, index=False)
+
+    print(f"✅ Scalability summary with SD saved to {output_file}")
+    return final_summary
+
 def run_all():
     create_result_dirs()
     context = get_context()
@@ -558,6 +626,13 @@ def run_all():
         "T2 (Scaled ×1.5)": scale_triangle(T1, 1.5),
         "T3 (Scaled ×2.0)": scale_triangle(T1, 2.0)
     }
+    # Print vertices
+    for name, verts in triangles.items():
+        print(f"{name} vertices:")
+        for i, (lat, lon) in enumerate(verts, start=1):
+            print(f"  Vertex {i}: ({lat}, {lon})")
+        print() 
+        
     for i, (label, triangle) in enumerate(triangles.items()):
         print(f"\n[🚀] Running experiments for: {label}")
         send_triangle_to_server(triangle)
@@ -568,12 +643,20 @@ def run_all():
     #plot_weight_differences_grouped()
     #run_runtime_all(context, triangles)
     #generate_runtime_detailed_summary()
-    plot_runtime_graph()
+    #plot_runtime_graph()
     #compute_and_plot_security_overhead()
     point_counts = [50, 100, 200, 400, 500, 700, 1000]
     #run_scalability_experiment(context, triangles, point_counts)
     #generate_scalability_summary()
     #plot_scalability_summary()
+    #summarize_runtime_with_sd("results/runtime/runtime.csv", "results/runtime/runtime_summary_with_sd.csv")
+
+    input_files = {
+    "T1 (Default)": "results/scalability_results/T1_Default_scalability.csv",
+    "T2 (Scaled ×1.5)": "results/scalability_results/T2_Scaled_x1.5_scalability.csv",
+    "T3 (Scaled ×2.0)": "results/scalability_results/T3_Scaled_x2.0_scalability.csv"
+    }
+    summarize_scalability_with_sd(input_files, "results/scalability_results/scalability_summary_with_sd.csv")
 
 if __name__ == "__main__":
     run_all()
